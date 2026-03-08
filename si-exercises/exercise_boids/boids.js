@@ -99,15 +99,15 @@ drawVisionCone(p) {
 
     // Draw the filled area between the lines
     ctx.beginPath();
-    ctx.moveTo(start[0], start[1]); // center
-    ctx.lineTo(left[0], left[1]);   // left edge
-    ctx.lineTo(right[0], right[1]); // right edge
-    ctx.closePath();                 // back to center
-    ctx.fillStyle = "rgba(0, 170, 0, 0.2)";
+    ctx.moveTo(start[0], start[1]); 
+    ctx.lineTo(left[0], left[1]);   
+    ctx.lineTo(right[0], right[1]); 
+    ctx.closePath();                 
+    ctx.fillStyle = "rgba(234, 71, 17, 0.35)";
     ctx.fill();
 
     // Optional: draw the lines on top
-    ctx.strokeStyle = "#00aa00";
+    ctx.strokeStyle = "#d4470aff";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(start[0], start[1]);
@@ -161,6 +161,73 @@ class Scene {
 		}
 		return angles
 	}
+
+   getNeighbours() {
+		let counts = [];
+		const outerRadius = S.conf.outerRadius;
+		for (let p of S.swarm) {
+			let count = 0;
+			for (let q of S.swarm) {
+				if (p.id === q.id) continue;
+
+				// compute wrapped distance
+				let dx = Math.abs(p.pos[0] - q.pos[0]);
+				if (dx > S.w/2) dx = S.w - dx;
+
+				let dy = Math.abs(p.pos[1] - q.pos[1]);
+				if (dy > S.h/2) dy = S.h - dy;
+
+				let dist = Math.sqrt(dx*dx + dy*dy);
+				if (dist <= outerRadius) count++;
+			}
+			counts.push(count);
+		}
+		return counts;
+	}
+
+	getOrderParameter(){
+		let OrdParm = 0
+		let sum_d = [0,0]
+		for (let p of S.swarm){
+			let d = p.dir
+			let magnitude_d = Math.sqrt(d[0]**2 + d[1]**2)
+			if(magnitude_d != 0) {
+				sum_d = p.addVectors(sum_d, [d[0] / magnitude_d, d[1] / magnitude_d])
+			}
+			else{
+				sum_d = p.addVectors(sum_d, [0, 0])
+			}
+		}	
+		let magnitude_d = Math.sqrt(sum_d[0]**2 + sum_d[1]**2)
+		if(magnitude_d == 0) {
+			OrdParm = 0
+		} else {
+			OrdParm = (magnitude_d / S.swarm.length)
+		}
+		return OrdParm
+	}
+
+	getNearestNeighborDistances() {
+    let distances = [];
+    for (let p of S.swarm) {
+        let minDist = Infinity;
+        for (let q of S.swarm) {
+            if (p.id === q.id) continue;
+
+            // wrapped distance
+            let dx = Math.abs(p.pos[0] - q.pos[0]);
+            if (dx > S.w / 2) dx = S.w - dx;
+
+            let dy = Math.abs(p.pos[1] - q.pos[1]);
+            if (dy > S.h / 2) dy = S.h - dy;
+
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) minDist = dist;
+        }
+        distances.push(minDist);
+    }
+    return distances;
+}
 	
 	wrap( pos, reference = undefined ){
 	
@@ -444,6 +511,8 @@ class Particle {
 	// Main update
 	// ----------------
 
+	
+
 	updateVector(){
 
 		let neighborsOuter = this.S.neighbours(this, this.S.conf.outerRadius)
@@ -507,6 +576,22 @@ function initialize(){
 	Plotly.newPlot( 'myDiv', data, layout);
 
 
+	let counts = []
+
+	let traceCounts = {
+		x: counts,
+		type: 'histogram',
+	  };
+	let  dataCounts = [traceCounts]
+	var layout = {
+	  xaxis: {range: [0, 200]}
+	};
+	Plotly.newPlot( 'neighborDiv', dataCounts, layout)
+
+	
+
+
 	
 }
+
 

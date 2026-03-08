@@ -19,9 +19,11 @@ let running = true
 function step(){
 	// update time logger
 	document.getElementById("time").innerHTML = S.time	
+	document.getElementById("orderParam").innerHTML = S.getOrderParameter()
 	if( running ){ S.step() }
 	canvas.drawSwarm()
-	
+
+
 	let trace = {
 		x: S.getAngles(),
 		type: 'histogram',
@@ -33,7 +35,37 @@ function step(){
 	  yaxis: {range: [0,20], title: "count" }
 	  
 	}
+	
+
 	Plotly.newPlot('myDiv', data, layout)
+
+	// --- Second histogram: neighbors ---
+    let neighborTrace = {
+        x: S.getNeighbours(),
+        type: 'histogram',
+        nbinsx: 30 
+    };
+	let dataCounts = [neighborTrace]
+	var layoutCounts = {
+		xaxis: {  title: "Number of neighbors (outer radius)" },
+		yaxis: {  title: "Count of boids" }
+	};
+    Plotly.react('neighborDiv', dataCounts, layoutCounts);
+
+	let nnDistances = S.getNearestNeighborDistances();
+
+    let traceDistance = {
+        x: nnDistances,
+        type: 'histogram',
+        nbinsx: 30  
+    };
+
+    Plotly.react('nnDistPlot', [traceDistance], {
+        xaxis: { title: "Nearest-neighbor distance" },
+        yaxis: { title: "Number of particles" }
+    });
+
+	
 	requestAnimationFrame( step )
 }
 
@@ -134,6 +166,11 @@ function toggleRunning(){
 		</div>	
 		<div>
 			<div id="myDiv"  style="width:400px;height:300px;" ></div><br>
+			 <div id="neighborDiv" style="width:400px;height:300px;"></div>
+			 <p>
+				Order Parameter: <span id="orderParam">0.00</span>
+			</p>
+			<div id="nnDistPlot" style="width:400px; height:300px;"></div>
 		</div>			
 	</div>
 	<br>
@@ -141,6 +178,7 @@ function toggleRunning(){
 </div>
  
  </div>
+
 </body>
 
 <script>
