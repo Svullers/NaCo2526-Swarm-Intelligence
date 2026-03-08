@@ -1,7 +1,7 @@
 let canvas, S
 let conf = {
-	w : 400,
-	h : 400,
+	w : 800,
+	h : 800,
 	N : 200, 
 	zoom : 1,
 	innerRadius : 10,
@@ -69,12 +69,68 @@ class Canvas {
 		}
 		ctx.stroke()		
 	}
+
+	rotateVector(v, angle){
+	return [
+		v[0]*Math.cos(angle) - v[1]*Math.sin(angle),
+		v[0]*Math.sin(angle) + v[1]*Math.cos(angle)
+	]
+	}
+
+
+drawVisionCone(p) {
+    const ctx = this.ctx;
+    const zoom = this.zoom;
+
+    const start = p.multiplyVector(p.pos, zoom); // center
+    const radius = this.S.conf.outerRadius * zoom;
+    const halfAngle = p.viewAngleDeg * Math.PI / 180;
+    const angle = Math.atan2(p.dir[1], p.dir[0]);
+
+    // Calculate the two boundary points
+    const left = [
+        start[0] + Math.cos(angle + halfAngle) * radius,
+        start[1] + Math.sin(angle + halfAngle) * radius
+    ];
+    const right = [
+        start[0] + Math.cos(angle - halfAngle) * radius,
+        start[1] + Math.sin(angle - halfAngle) * radius
+    ];
+
+    // Draw the filled area between the lines
+    ctx.beginPath();
+    ctx.moveTo(start[0], start[1]); // center
+    ctx.lineTo(left[0], left[1]);   // left edge
+    ctx.lineTo(right[0], right[1]); // right edge
+    ctx.closePath();                 // back to center
+    ctx.fillStyle = "rgba(0, 170, 0, 0.2)";
+    ctx.fill();
+
+    // Optional: draw the lines on top
+    ctx.strokeStyle = "#00aa00";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(start[0], start[1]);
+    ctx.lineTo(left[0], left[1]);
+    ctx.moveTo(start[0], start[1]);
+    ctx.lineTo(right[0], right[1]);
+    ctx.stroke();
+}
 	
 	drawSwarm(){
 		this.background( "eaecef" )
+		const showVision = document.getElementById("Enable Vision Angle").checked
 		for( let p of this.S.swarm ){
 			this.fillCircle( p.pos, "ff0000" )
-			this.drawCircle( p.pos, "aaaaaa", this.S.conf.outerRadius )
+
+			if(showVision){
+				this.drawVisionCone(p)
+				this.drawCircle( p.pos, "aaaaaa", this.S.conf.outerRadius )
+			}
+			else{
+				this.drawCircle( p.pos, "aaaaaa", this.S.conf.outerRadius )
+			}
+		
 		}
 		this.drawDirections()
 	}	
@@ -217,85 +273,218 @@ class Scene {
 
 
 
+
 class Particle {
-	constructor( Scene, i ){
+
+	constructor(Scene, i){
+
 		this.S = Scene
-		this.speed = 1 
 		this.id = i
-		this.pos = this.S.randomPosition() 
+
+		this.pos = this.S.randomPosition()
+
+		// direction vector (unit length)
 		this.dir = this.S.randomDirection()
+
+		this.acc = [0,0]
+
+		this.speed = 1
+		this.maxForce = 0.05
+
+		this.viewAngleDeg = 150; // 45° forward
+    	this.viewAngle = Math.cos(this.viewAngleDeg * Math.PI / 180); // for dot product
 	}
-	// return a + b
-	addVectors( a, b ){
-		const dim = a.length
-		let out = []
-		for( let d = 0; d < dim; d++ ){
-			out.push( a[d] + b[d] )
-		}
-		return out
+
+	// ----------------
+	// Vector utilities
+	// ----------------
+
+	addVectors(a,b){
+		return [a[0] + b[0], a[1] + b[1]]
 	}
-	// return a - b
-	subtractVectors( a, b ){
-		const dim = a.length
-		let out = []
-		for( let d = 0; d < dim; d++ ){
-			out.push( a[d] - b[d] )
-		}
-		return out
+
+	subtractVectors(a,b){
+		return [a[0] - b[0], a[1] - b[1]]
 	}
-	// multiply vector by a constant
-	multiplyVector( a, c ){
-		return a.map(( x ) => x * c ) 
+
+	multiplyVector(a,c){
+		return [a[0] * c, a[1] * c]
 	}
-	// normalize vector to unit length
-	normalizeVector( a ){
+
+	normalizeVector(a){
 		return this.S.normalizeVector(a)
 	}
-	
-	// should return a unit vector in average neighbor direction for neighbors within 
-	// distance neighborRadius 
-	alignmentVector( neighborRadius ){
-		
-		return this.dir
-	
+
+	limitForce(v){
+
+		let n = this.normalizeVector(v)
+
+		if(n[0] !== 0 || n[1] !== 0){
+			return this.multiplyVector(n, this.maxForce)
+		}
+
+		return v
 	}
-	
-	// should return a unit vector in the direction from current position to the 
-	// average position of neighbors within distance neighborRadius 
-	cohesionVector( neighborRadius ){
-		
-		return this.dir
-	
-	}
-	
-	// as cohesionVector, but now return the opposite direction for the given 
-	separationVector( neighborRadius ){
-		
-		return this.dir 
-		
-	}
-	
-	updateVector(){
-		
-		let align_weight = this.S.conf.alignment
-		let cohesion_weight = this.S.conf.cohesion
-		let separation_weight = this.S.conf.separation
-		
-		const align = this.multiplyVector( this.alignmentVector( this.S.conf.outerRadius ), align_weight )
-		const cohesion = this.multiplyVector(this.cohesionVector( this.S.conf.outerRadius ), cohesion_weight )
-		const separation = this.multiplyVector( this.separationVector(this.S.conf.innerRadius ), separation_weight )
-		
-		// Add your code to combine the particle's current this.dir with the (weighted)
-		// alignment, cohesion, and separation directions. 
-		// Make sure to update the properties this.dir and this.pos accordingly.
-		// What happens when the new position lies across the field boundary? 
-		
-		this.pos = this.pos
-		this.dir = this.dir 	
-		
-	}
-	
+
+	inFieldOfView(p){
+		let wrapped = this.S.wrap(p.pos, this.pos)
+		let toNeighbor = this.subtractVectors(wrapped, this.pos)
+		toNeighbor = this.normalizeVector(toNeighbor)
+		let dot = this.dir[0]*toNeighbor[0] + this.dir[1]*toNeighbor[1]
+		return dot > this.viewAngle
 }
+
+	// ----------------
+	// Alignment
+	// ----------------
+
+	alignment(neighbors){
+		const showVision = document.getElementById("Enable Vision Angle").checked
+		let steer = [0,0]
+
+		if(neighbors.length === 0) return steer
+
+		for(let p of neighbors){
+			if(!this.inFieldOfView(p) && showVision) continue
+			
+			steer = this.addVectors(steer, p.dir)
+		}
+
+		steer = this.multiplyVector(steer, 1/neighbors.length)
+
+		steer = this.normalizeVector(steer)
+		steer = this.multiplyVector(steer, this.speed)
+
+		let currentVel = this.multiplyVector(this.dir, this.speed)
+
+		steer = this.subtractVectors(steer, currentVel)
+
+		return this.limitForce(steer)
+	}
+
+	// ----------------
+	// Cohesion
+	// ----------------
+
+	cohesion(neighbors){
+		const showVision = document.getElementById("Enable Vision Angle").checked
+		let center = [0,0]
+
+		if(neighbors.length === 0) return center
+
+		for(let p of neighbors){
+			
+			if(!this.inFieldOfView(p) && showVision) continue
+			
+			let wrapped = this.S.wrap(p.pos, this.pos)
+
+			center = this.addVectors(center, wrapped)
+		}
+
+		center = this.multiplyVector(center, 1/neighbors.length)
+
+		let desired = this.subtractVectors(center, this.pos)
+
+		desired = this.normalizeVector(desired)
+		desired = this.multiplyVector(desired, this.speed)
+
+		let currentVel = this.multiplyVector(this.dir, this.speed)
+
+		let steer = this.subtractVectors(desired, currentVel)
+
+		return this.limitForce(steer)
+	}
+
+	// ----------------
+	// Separation
+	// ----------------
+
+	separation(neighbors){
+		const showVision = document.getElementById("Enable Vision Angle").checked
+		let steer = [0,0]
+		let count = 0
+
+		for(let p of neighbors){
+
+
+			let wrapped = this.S.wrap(p.pos, this.pos)
+
+			let diff = this.subtractVectors(this.pos, wrapped)
+
+			let d = this.S.dist(this.pos, wrapped)
+
+			if(d > 0){
+
+				diff = this.multiplyVector(diff, 1/d)
+
+				steer = this.addVectors(steer, diff)
+
+				count++
+			}
+		}
+
+		if(count > 0){
+			steer = this.multiplyVector(steer, 1/count)
+		}
+
+		if(steer[0] !== 0 || steer[1] !== 0){
+
+			steer = this.normalizeVector(steer)
+			steer = this.multiplyVector(steer, this.speed)
+
+			let currentVel = this.multiplyVector(this.dir, this.speed)
+
+			steer = this.subtractVectors(steer, currentVel)
+		}
+
+		return this.limitForce(steer)
+	}
+
+	// ----------------
+	// Main update
+	// ----------------
+
+	updateVector(){
+
+		let neighborsOuter = this.S.neighbours(this, this.S.conf.outerRadius)
+
+		let neighborsInner = this.S.neighbours(this, this.S.conf.innerRadius)
+		
+		let align = this.alignment(neighborsOuter)
+		let coh   = this.cohesion(neighborsOuter)
+		let sep   = this.separation(neighborsInner)
+
+		align = this.multiplyVector(align, this.S.conf.alignment)
+		coh   = this.multiplyVector(coh, this.S.conf.cohesion)
+		sep   = this.multiplyVector(sep, this.S.conf.separation)
+
+		this.acc = [0,0]
+
+		this.acc = this.addVectors(this.acc, align)
+		this.acc = this.addVectors(this.acc, coh)
+		this.acc = this.addVectors(this.acc, sep)
+
+		this.acc = this.limitForce(this.acc)
+
+		// update direction
+		let vel = this.multiplyVector(this.dir, this.speed)
+
+		vel = this.addVectors(vel, this.acc)
+
+		this.dir = this.normalizeVector(vel)
+
+		// move with constant speed
+		this.pos = this.addVectors(
+			this.pos,
+			this.multiplyVector(this.dir, this.speed)
+		)
+
+		this.pos = this.S.wrap(this.pos)
+	}
+
+}
+
+
 
 
 
