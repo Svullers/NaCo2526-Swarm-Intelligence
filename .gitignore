@@ -1,3 +1,11 @@
 .venv/
 Playground-Notebook.ipynb
 node_modules/
+si-exercises/.DS_Store
+.DS_Store
+
+si-exercises/exercise_boids/imgs/*
+si-exercises/exercise_boids/csvs/*
+
+si-exercises/exercise_boids/plots/angle_plot.png
+si-exercises/exercise_boids/plots/nn_distance_plot.png

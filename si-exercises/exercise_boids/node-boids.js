@@ -371,7 +371,7 @@ class Scene {
 		this.makeSwarm()
 	}
 
-    getAngles(p){
+    getAngle(p){
 		return 180 + (180/Math.PI) * Math.atan2( p.dir[1], p.dir[0] )
 	}
 	
@@ -632,10 +632,10 @@ var layout = {
 
 if( saveImg ) canvas.writePNG( `${imgpath}/boids-t${S.time}.png` )
 
-console.log( "time,id,x,y,nn_dis")
+// console.log( "time,id,x,y,nn_dis")
 
 let ops = ["t,orderParam"]
-let boids = ["t,id,x,y,nn_dis,ang,ncount"]
+let boids = ["t,id,x,y,nn_dis,angle,ncount"]
 
 for( let t = 0; t <= conf.runTime; t++ ){
 	if( saveImg & t % 100 == 0 ){
@@ -652,11 +652,12 @@ for( let t = 0; t <= conf.runTime; t++ ){
 	// log positions to the console
 	for( let p of S.swarm ){
         let nn_dis = S.getNearestNeighborDistance(p)
-        let angle = S.getAngles(p)
+        let angle = S.getAngle(p)
         let ncount = S.getPNeighbours(p)
-		let log = [ S.time, p.id, p.pos[0], p.pos[1], nn_dis ]
         boids.push(`${S.time},${p.id},${p.pos[0]},${p.pos[1]},${nn_dis},${angle},${ncount}`)
-		console.log( log.join(",") )
+
+		// let log = [ S.time, p.id, p.pos[0], p.pos[1], nn_dis ]
+        // console.log( log.join(",") )
 	}
 	
 }
