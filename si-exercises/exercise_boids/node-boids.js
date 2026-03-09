@@ -370,6 +370,10 @@ class Scene {
 		this.time = 0
 		this.makeSwarm()
 	}
+
+    getAngles(p){
+		return 180 + (180/Math.PI) * Math.atan2( p.dir[1], p.dir[0] )
+	}
 	
 	getAngles(){
 		let angles = []
@@ -379,6 +383,25 @@ class Scene {
 		}
 		return angles
 	}
+
+    getPNeighbours(p){
+        const outerRadius = S.conf.outerRadius;
+        let count = 0;
+        for (let q of S.swarm) {
+            if (p.id === q.id) continue;
+
+            // compute wrapped distance
+            let dx = Math.abs(p.pos[0] - q.pos[0]);
+            if (dx > S.w/2) dx = S.w - dx;
+
+            let dy = Math.abs(p.pos[1] - q.pos[1]);
+            if (dy > S.h/2) dy = S.h - dy;
+
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist <= outerRadius) count++;
+        }
+        return count
+    }
 
     getNeighbours() {
         let counts = [];
@@ -612,7 +635,7 @@ if( saveImg ) canvas.writePNG( `${imgpath}/boids-t${S.time}.png` )
 console.log( "time,id,x,y,nn_dis")
 
 let ops = ["t,orderParam"]
-let boids = ["t,id,x,y,nn_dis"]
+let boids = ["t,id,x,y,nn_dis,ang,ncount"]
 
 for( let t = 0; t <= conf.runTime; t++ ){
 	if( saveImg & t % 100 == 0 ){
@@ -625,13 +648,14 @@ for( let t = 0; t <= conf.runTime; t++ ){
     let op = S.getOrderParameter()
     ops.push(`${S.time},${op}`)
 
-
     
 	// log positions to the console
 	for( let p of S.swarm ){
         let nn_dis = S.getNearestNeighborDistance(p)
+        let angle = S.getAngles(p)
+        let ncount = S.getPNeighbours(p)
 		let log = [ S.time, p.id, p.pos[0], p.pos[1], nn_dis ]
-        boids.push(`${S.time},${p.id},${p.pos[0]},${p.pos[1]},${nn_dis}`)
+        boids.push(`${S.time},${p.id},${p.pos[0]},${p.pos[1]},${nn_dis},${angle},${ncount}`)
 		console.log( log.join(",") )
 	}
 	
