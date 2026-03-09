@@ -1,0 +1,24 @@
+RESULTS FROGS
+
+Iteration 0 - Global Best Fitness: 1051687.8514
+Global Best Colors: [[120 128 181]
+ [ 83  61  40]
+ [ 95 208 151]
+ [145 123 159]]
+Time taken for iteration 0: 3.10 seconds
+Iteration 5 - Global Best Fitness: 805435.9175
+Global Best Colors: [[114  85 169]
+ [ 94  99  38]
+ [116  92 128]
+ [166 255 125]]
+Time taken for iteration 5: 18.57 seconds
+Iteration 10 - Global Best Fitness: 663070.2792
+Global Best Colors: [[ 93 129  77]
+ [ 85  92  35]
+ [ 67 156  62]
+ [212 186 114]]
+Time taken for iteration 10: 33.98 seconds
+Total time taken for PSO:  33.97992396354675
+0 1051687.8514353393
+5 805435.9175032777
+10 663070.279169272

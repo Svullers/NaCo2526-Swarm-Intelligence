@@ -1,0 +1,32 @@
+RESULTS PAPRIKA
+
+Iteration 5 - Global Best Fitness: 844073.7181
+Global Best Colors: [[144 163  86]
+ [ 56  49  12]
+ [141  15  46]
+ [163 155 113]]
+Time taken for iteration 5: 15.89 seconds
+Iteration 10 - Global Best Fitness: 826406.6276
+Global Best Colors: [[141 205  87]
+ [ 96  52  49]
+ [156  48  43]
+ [102 152 122]]
+Time taken for iteration 10: 31.99 seconds
+Iteration 15 - Global Best Fitness: 820762.0008
+Global Best Colors: [[138 204 104]
+ [103  57  41]
+ [165  54  39]
+ [140  56 116]]
+Time taken for iteration 15: 47.90 seconds
+Iteration 20 - Global Best Fitness: 797591.1762
+Global Best Colors: [[153 200 112]
+ [ 99  62  44]
+ [161  48  34]
+ [161 163 135]]
+Time taken for iteration 20: 63.65 seconds
+Total time taken for PSO:  66.83578372001648
+0 969387.7130097076
+5 844073.7181006871
+10 826406.6275941265
+15 797591.17622903
+20 797591.17622903
