@@ -1,8 +1,8 @@
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-
-TOTAL_ITERATIONS = 40
+import time
+TOTAL_ITERATIONS = 10
 
 def distance_color(color1, color2):
     return np.sqrt(np.sum((color1 - color2) ** 2))
@@ -15,6 +15,7 @@ def closest_color(requested_color, palette):
 
 #particles is Xi and Z are all the pixels in the dataset
 def eval_cluster_distance(particle, Z):
+    
     #Assign each pixel in Z to the closest color in the particle
     clustered_pixels = [closest_color(pixel, particle) for pixel in Z]
 
@@ -25,7 +26,9 @@ def eval_cluster_distance(particle, Z):
 
 
 def PSO(pixels, eval_func, num_particles, pallete_size = 4, iterations=TOTAL_ITERATIONS, w=0.5, a1=1.0, a2=1.0):
+    curr_time = time.time()
     M = pixels.shape[0] #Num of pixels
+    
     particles = np.random.uniform(0, 255, size=(num_particles, pallete_size, 3))
     velocities = np.zeros((num_particles, pallete_size, 3))
 
@@ -73,7 +76,13 @@ def PSO(pixels, eval_func, num_particles, pallete_size = 4, iterations=TOTAL_ITE
         particles_state.append(particles.copy())
         global_best_state.append(global_best.copy())
         global_best_fitness_state.append(global_best_fitness)
+        
+        if(iteration % 5 == 0):
+            print(f"Iteration {iteration} - Global Best Fitness: {global_best_fitness:.4f}")
+            print(f"Global Best Colors: {global_best.astype(int)}")
+            print(f"Time taken for iteration {iteration}: {time.time() - curr_time:.2f} seconds")
         iteration += 1
+    print("Total time taken for PSO: ", time.time() - curr_time)
     return particles_state, global_best_state, global_best_fitness_state
 
 
@@ -85,7 +94,7 @@ img_array = np.array(img)
 pixels = img_array.reshape(-1, 3).astype(float)
 
 particles_states, global_best_states, global_best_fitness_states= PSO(pixels, eval_cluster_distance, num_particles=40)
-
+  
 # Determine how many snapshots we want: every 5 iterations + last one if not divisible
 snapshot_indices = list(range(0, TOTAL_ITERATIONS, 5))
 if TOTAL_ITERATIONS not in snapshot_indices:
@@ -110,6 +119,10 @@ for idx, iteration in enumerate(snapshot_indices):
     adjusted_img_array = adjusted_pixels.reshape(img_array.shape)
 
     fitness = global_best_fitness_states[iteration]
+    img_to_save = np.array(adjusted_img_array).reshape((128, 128, 3))
+    img = Image.fromarray(img_to_save.astype('uint8'))
+    img.save(f"results_pso/image_{iteration}.png")
+    print(iteration, fitness)
     axs[idx + 1].imshow(adjusted_img_array)
     axs[idx + 1].set_title(f'Iteration {iteration} — Fitness: {fitness:.4f}')
     axs[idx + 1].axis("off")
